@@ -1,0 +1,83 @@
+import shutil
+import esphome.codegen as cg
+import esphome.config_validation as cv
+from esphome.components import output, esp32
+from esphome.const import CONF_ID, KEY_FRAMEWORK_VERSION, KEY_CORE
+from esphome.core import CORE
+from pathlib import Path
+
+ESP_IDF_VERSION = cv.Version(5, 4, 2)
+
+sensor_tommy_ns = cg.esphome_ns.namespace("sensor_tommy")
+SensorTommy = sensor_tommy_ns.class_("SensorTommy", cg.Component)
+
+CONFIG_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.declare_id(SensorTommy),
+    }
+).extend(cv.COMPONENT_SCHEMA)
+
+
+async def to_code(config):
+    # Ensure ESP-IDF is being used
+    if not CORE.using_esp_idf:
+        raise cv.Invalid("ESP-IDF is required for this component")
+
+    # Ensure framework version is supported
+    if CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] != ESP_IDF_VERSION:
+        raise cv.Invalid(
+            "Framework version is not supported, expected: %s, got: %s"
+            % (ESP_IDF_VERSION, CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION])
+        )
+
+    # Add idf components
+    esp32.add_idf_component(name="espressif/zlib", ref="^1.3.0")
+    esp32.add_idf_component(name="espressif/json_parser", ref="^1.0.3")
+
+    # Get the ESP32 variant and add the correct library
+    variant = CORE.config["esp32"]["variant"].lower()
+
+    lib_mapping = {
+        "esp32c5": "lib_esp32c5.a",
+        "esp32c6": "lib_esp32c6.a",
+        "esp32s3": "lib_esp32s3.a",
+    }
+
+    lib_filename = lib_mapping.get(variant)
+    if not lib_filename:
+        raise cv.Invalid(f"Unsupported ESP32 variant for sensor_tommy: {variant}")
+
+    # Copy library to build directory
+    component_dir = Path(__file__).parent
+    build_dir = Path(CORE.relative_build_path("src/esphome/components/sensor_tommy"))
+    build_dir.mkdir(parents=True, exist_ok=True)
+
+    lib_source = component_dir / lib_filename
+    lib_dest = build_dir / lib_filename
+
+    if not lib_source.exists():
+        raise cv.Invalid(f"Library file not found: {lib_filename} in {component_dir}")
+
+    shutil.copy(lib_source, lib_dest)
+
+    # Add library as extra linking archive - only for main app
+    cg.add_platformio_option("extra_scripts", ["post:add_tommy_lib.py"])
+
+    # Create the extra script
+    script_path = Path(CORE.relative_build_path("add_tommy_lib.py"))
+    script_content = f"""
+Import("env")
+
+# Check if this is the firmware build (not bootloader)
+if env.get("PROGNAME") == "firmware":
+    env.Append(LINKFLAGS=[
+        "-Wl,--whole-archive",
+        "{lib_dest}",
+        "-Wl,--no-whole-archive"
+    ])
+"""
+    script_path.write_text(script_content)
+
+    var = cg.new_Pvariable(config[CONF_ID])
+    await output.register_output(var, config)
+    await cg.register_component(var, config)
