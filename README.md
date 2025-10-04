@@ -1,4 +1,6 @@
 # Required configuration options:
+
+```yaml
 esp32:
   framework:
     version: recommended
@@ -11,5 +13,6 @@ esp32:
       CONFIG_ESP_WIFI_STA_DISCONNECTED_PM_ENABLE: n
       CONFIG_PM_ENABLE: n
     type: esp-idf
-    
+
 sensor_tommy:
+```
