@@ -3,7 +3,7 @@
 ```yaml
 esp32:
   framework:
-    version: recommended
+    version: 5.4.2
     sdkconfig_options:
       CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM: '128'
       CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM: '128'
