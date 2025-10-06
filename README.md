@@ -1,7 +1,12 @@
-# Required configuration options:
+# Required configuration:
+The following options need to be set for TOMMY to work correctly.
 
 ```yaml
+esphome:
+  ...
+
 esp32:
+  ...
   framework:
     version: 5.4.2
     sdkconfig_options:
@@ -14,5 +19,13 @@ esp32:
       CONFIG_PM_ENABLE: n
     type: esp-idf
 
+wifi:
+  ...
+  power_save_mode: NONE
+
+external_components:
+  - source: github://tommy-sense/esphome
+    components: [ sensor_tommy ]
+  
 sensor_tommy:
 ```
