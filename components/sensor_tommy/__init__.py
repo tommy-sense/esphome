@@ -6,7 +6,10 @@ from esphome.const import CONF_ID, KEY_FRAMEWORK_VERSION, KEY_CORE
 from esphome.core import CORE
 from pathlib import Path
 
-ESP_IDF_VERSION = cv.Version(5, 4, 2)
+SUPPORTED_ESP_IDF_VERSIONS = [
+    cv.Version(5, 4, 2),
+    cv.Version(5, 5, 1),
+]
 
 sensor_tommy_ns = cg.esphome_ns.namespace("sensor_tommy")
 SensorTommy = sensor_tommy_ns.class_("SensorTommy", cg.Component)
@@ -23,24 +26,28 @@ async def to_code(config):
     if not CORE.using_esp_idf:
         raise cv.Invalid("ESP-IDF is required for this component")
 
-    # Ensure framework version is supported
-    if CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] != ESP_IDF_VERSION:
+    # Get framework version and ensure it's supported
+    framework_version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
+    if framework_version not in SUPPORTED_ESP_IDF_VERSIONS:
+        supported_versions_str = ", ".join(str(v) for v in SUPPORTED_ESP_IDF_VERSIONS)
         raise cv.Invalid(
-            "Framework version is not supported, expected: %s, got: %s"
-            % (ESP_IDF_VERSION, CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION])
+            f"Framework version is not supported. Expected one of: {supported_versions_str}, got: {framework_version}"
         )
 
     # Add idf components
     esp32.add_idf_component(name="espressif/zlib", ref="^1.3.0")
     esp32.add_idf_component(name="espressif/json_parser", ref="^1.0.3")
 
-    # Get the ESP32 variant and add the correct library
+    # Get the ESP32 variant and ESP-IDF version
     variant = CORE.config["esp32"]["variant"].lower()
 
+    # Format version string for library filename (e.g., "v5.4.2")
+    version_str = f"v{framework_version.major}.{framework_version.minor}.{framework_version.patch}"
+
     lib_mapping = {
-        "esp32c5": "lib_esp32c5.a",
-        "esp32c6": "lib_esp32c6.a",
-        "esp32s3": "lib_esp32s3.a",
+        "esp32c5": f"lib_esp32c5_{version_str}.a",
+        "esp32c6": f"lib_esp32c6_{version_str}.a",
+        "esp32s3": f"lib_esp32s3_{version_str}.a",
     }
 
     lib_filename = lib_mapping.get(variant)
@@ -56,7 +63,10 @@ async def to_code(config):
     lib_dest = build_dir / lib_filename
 
     if not lib_source.exists():
-        raise cv.Invalid(f"Library file not found: {lib_filename} in {component_dir}")
+        raise cv.Invalid(
+            f"Library file not found: {lib_filename} in {component_dir}. "
+            f"Expected library for variant '{variant}' with ESP-IDF version {version_str}"
+        )
 
     shutil.copy(lib_source, lib_dest)
 
