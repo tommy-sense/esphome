@@ -45,9 +45,9 @@ async def to_code(config):
     version_str = f"v{framework_version.major}.{framework_version.minor}.{framework_version.patch}"
 
     lib_mapping = {
-        "esp32c5": f"lib_esp32c5_{version_str}.a",
-        "esp32c6": f"lib_esp32c6_{version_str}.a",
-        "esp32s3": f"lib_esp32s3_{version_str}.a",
+        "esp32c5": f"esp32c5-{version_str}.a",
+        "esp32c6": f"esp32c6-{version_str}.a",
+        "esp32s3": f"esp32s3-{version_str}.a",
     }
 
     lib_filename = lib_mapping.get(variant)
