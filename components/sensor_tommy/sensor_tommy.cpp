@@ -13,7 +13,7 @@ float SensorTommy::get_setup_priority() const {
 }
 
 void SensorTommy::setup(){
-    tommy_start(true);
+    tommy_start();
 }
 
 void SensorTommy::loop() {
