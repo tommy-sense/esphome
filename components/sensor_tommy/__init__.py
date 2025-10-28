@@ -45,9 +45,11 @@ async def to_code(config):
     version_str = f"v{framework_version.major}.{framework_version.minor}.{framework_version.patch}"
 
     lib_mapping = {
+        "esp32": f"esp32-{version_str}.a",
         "esp32c3": f"esp32c3-{version_str}.a",
         "esp32c5": f"esp32c5-{version_str}.a",
         "esp32c6": f"esp32c6-{version_str}.a",
+        "esp32s2": f"esp32s2-{version_str}.a",
         "esp32s3": f"esp32s3-{version_str}.a",
     }
 
