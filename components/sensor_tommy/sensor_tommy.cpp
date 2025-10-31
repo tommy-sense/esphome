@@ -13,13 +13,25 @@ float SensorTommy::get_setup_priority() const {
 }
 
 void SensorTommy::setup(){
-    tommy_start();
+    if (!instance_ip_.empty() && this->file_server_http_port_ != 0 && this->file_server_https_port_ != 0) {
+        tommy_start_with_instance_details(this->instance_ip_.c_str(), this->file_server_http_port_, this->file_server_https_port_);
+    } else {
+        tommy_start();
+    }
 }
 
 void SensorTommy::loop() {
 }
 
 void SensorTommy::dump_config() {
+    ESP_LOGCONFIG(TAG, "TOMMY Sensor:");
+    if (!instance_ip_.empty()) {
+        ESP_LOGCONFIG(TAG, "  Instance IP: %s", this->instance_ip_.c_str());
+        ESP_LOGCONFIG(TAG, "  HTTP Port: %d", this->file_server_http_port_);
+        ESP_LOGCONFIG(TAG, "  HTTPS Port: %d", this->file_server_https_port_);
+    } else {
+        ESP_LOGCONFIG(TAG, "  Using auto-discovery via mDNS");
+    }
 }
 
 } 

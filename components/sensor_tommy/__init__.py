@@ -11,12 +11,19 @@ SUPPORTED_ESP_IDF_VERSIONS = [
     cv.Version(5, 5, 1),
 ]
 
+CONF_INSTANCE_IP = "instance_ip"
+CONF_FILE_SERVER_HTTP_PORT = "file_server_http_port"
+CONF_FILE_SERVER_HTTPS_PORT = "file_server_https_port"
+
 sensor_tommy_ns = cg.esphome_ns.namespace("sensor_tommy")
 SensorTommy = sensor_tommy_ns.class_("SensorTommy", cg.Component)
 
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(SensorTommy),
+        cv.Optional(CONF_INSTANCE_IP): cv.string,
+        cv.Optional(CONF_FILE_SERVER_HTTP_PORT): cv.port,
+        cv.Optional(CONF_FILE_SERVER_HTTPS_PORT): cv.port,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -92,5 +99,14 @@ if env.get("PROGNAME") == "firmware":
     script_path.write_text(script_content)
 
     var = cg.new_Pvariable(config[CONF_ID])
+
+    # Set instance configuration if provided
+    if CONF_INSTANCE_IP in config:
+        cg.add(var.set_instance_ip(config[CONF_INSTANCE_IP]))
+    if CONF_FILE_SERVER_HTTP_PORT in config:
+        cg.add(var.set_file_server_http_port(config[CONF_FILE_SERVER_HTTP_PORT]))
+    if CONF_FILE_SERVER_HTTPS_PORT in config:
+        cg.add(var.set_file_server_https_port(config[CONF_FILE_SERVER_HTTPS_PORT]))
+
     await output.register_output(var, config)
     await cg.register_component(var, config)
