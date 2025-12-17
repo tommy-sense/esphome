@@ -11,8 +11,6 @@ namespace sensor_tommy {
 
 static const char *TAG = "sensor_tommy.component";
 
-float SensorTommy::get_setup_priority() const { return setup_priority::LATE; }
-
 void SensorTommy::setup() {}
 
 void SensorTommy::loop() {
@@ -25,13 +23,11 @@ void SensorTommy::loop() {
     }
 
     this->disable_loop();
-
-    ESP_LOGI(TAG, "TOMMY Sensor started");
   }
 }
 
 void SensorTommy::dump_config() {
-  ESP_LOGCONFIG(TAG, "TOMMY Sensor:");
+  ESP_LOGCONFIG(TAG, "TOMMY:");
   if (!instance_ip_.empty()) {
     ESP_LOGCONFIG(TAG, "  Instance IP: %s", this->instance_ip_.c_str());
     ESP_LOGCONFIG(TAG, "  HTTP Port: %d", this->file_server_http_port_);
