@@ -7,8 +7,7 @@ from esphome.core import CORE
 from pathlib import Path
 
 SUPPORTED_ESP_IDF_VERSIONS = [
-    cv.Version(5, 4, 2),
-    cv.Version(5, 5, 1),
+    cv.Version(5, 5, 2),
 ]
 
 CONF_INSTANCE_IP = "instance_ip"
@@ -48,7 +47,7 @@ async def to_code(config):
     # Get the ESP32 variant and ESP-IDF version
     variant = CORE.config["esp32"]["variant"].lower()
 
-    # Format version string for library filename (e.g., "v5.4.2")
+    # Format version string for library filename
     version_str = f"v{framework_version.major}.{framework_version.minor}.{framework_version.patch}"
 
     lib_mapping = {
