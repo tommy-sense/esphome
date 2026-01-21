@@ -3,3 +3,4 @@
 __pycache__
 board-tests/
 .DS_Store
+venv/
