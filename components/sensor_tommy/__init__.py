@@ -7,7 +7,7 @@ from esphome.core import CORE
 from pathlib import Path
 
 SUPPORTED_ESP_IDF_VERSIONS = [
-    cv.Version(5, 5, 2),
+    cv.Version(5, 5, 1),
 ]
 
 CONF_INSTANCE_IP = "instance_ip"
