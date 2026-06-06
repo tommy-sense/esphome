@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 void tommy_start();
+void tommy_start_with_mdns();
 void tommy_start_with_instance_details(const char *instance_ip, int udp_relay_port);
 
 #ifdef __cplusplus

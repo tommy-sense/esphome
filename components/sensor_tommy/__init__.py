@@ -1,4 +1,5 @@
 import shutil
+import logging
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import output, esp32
@@ -10,25 +11,46 @@ SUPPORTED_ESP_IDF_VERSIONS = [
     cv.Version(5, 5, 1),
 ]
 
+CONF_DISCOVERY = "discovery"
 CONF_INSTANCE_IP = "instance_ip"
 CONF_UDP_RELAY_PORT = "udp_relay_port"
+
+DISCOVERY_MDNS = "mdns"
+DISCOVERY_MANUAL = "manual"
 
 sensor_tommy_ns = cg.esphome_ns.namespace("sensor_tommy")
 SensorTommy = sensor_tommy_ns.class_("SensorTommy", cg.Component)
 
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(SensorTommy),
-        cv.Optional(CONF_INSTANCE_IP): cv.string,
-        cv.Optional(CONF_UDP_RELAY_PORT): cv.port,
-    }
-).extend(cv.COMPONENT_SCHEMA)
+_LOGGER = logging.getLogger(__name__)
+
+
+def _validate_discovery(config):
+    mode = config.get(CONF_DISCOVERY)
+    if mode == DISCOVERY_MANUAL:
+        if CONF_INSTANCE_IP not in config or not config[CONF_INSTANCE_IP].strip():
+            raise cv.Invalid("instance_ip is required when discovery: manual.")
+    return config
+
+
+CONFIG_SCHEMA = cv.All(
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(SensorTommy),
+            cv.Optional(CONF_DISCOVERY): cv.one_of(
+                DISCOVERY_MDNS, DISCOVERY_MANUAL, lower=True
+            ),
+            cv.Optional(CONF_INSTANCE_IP): cv.string,
+            cv.Optional(CONF_UDP_RELAY_PORT): cv.port,
+        }
+    ).extend(cv.COMPONENT_SCHEMA),
+    _validate_discovery,
+)
 
 
 async def to_code(config):
     # Ensure ESP-IDF is being used
-    if not CORE.using_esp_idf:
-        raise cv.Invalid("ESP-IDF is required for this component")
+    if CORE.using_arduino:
+        raise cv.Invalid("ESP-IDF framework is required for this component (set framework: type: esp-idf)")
 
     # Get framework version and ensure it's supported
     framework_version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
@@ -97,11 +119,30 @@ if env.get("PROGNAME") == "firmware":
 
     var = cg.new_Pvariable(config[CONF_ID])
 
-    # Set instance configuration if provided
-    if CONF_INSTANCE_IP in config:
+    # Get discovery mode and infer if not set explictly
+    mode = config.get(CONF_DISCOVERY)
+    if mode is None:
+        if CONF_INSTANCE_IP in config:
+            mode = DISCOVERY_MANUAL
+            _LOGGER.warning(
+                "sensor_tommy: 'discovery' is not set. "
+                "Inferred 'manual' because 'instance_ip' is present. "
+                "Set 'discovery: manual' explicitly to suppress this warning."
+            )
+        else:
+            mode = DISCOVERY_MDNS
+            _LOGGER.warning(
+                "sensor_tommy: 'discovery' is not set. "
+                "Defaulting to 'mdns'. "
+                "Set 'discovery: mdns' explicitly to suppress this warning."
+            )
+
+    cg.add(var.set_discovery_mode(mode))
+
+    if mode == DISCOVERY_MANUAL:
         cg.add(var.set_instance_ip(config[CONF_INSTANCE_IP]))
-    if CONF_UDP_RELAY_PORT in config:
-        cg.add(var.set_udp_relay_port(config[CONF_UDP_RELAY_PORT]))
+        if CONF_UDP_RELAY_PORT in config:
+            cg.add(var.set_udp_relay_port(config[CONF_UDP_RELAY_PORT]))
 
     await output.register_output(var, config)
     await cg.register_component(var, config)

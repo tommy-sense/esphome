@@ -15,23 +15,23 @@ void SensorTommy::setup() {}
 
 void SensorTommy::loop() {
   if (network::is_connected()) {
-    if (!instance_ip_.empty() && this->udp_relay_port_ != 0) {
+    if (this->discovery_mode_ == "manual") {
       tommy_start_with_instance_details(this->instance_ip_.c_str(), this->udp_relay_port_);
     } else {
-      tommy_start();
+      tommy_start_with_mdns();
     }
-
     this->disable_loop();
   }
 }
 
 void SensorTommy::dump_config() {
   ESP_LOGCONFIG(TAG, "TOMMY:");
-  if (!instance_ip_.empty()) {
+  if (this->discovery_mode_ == "manual") {
+    ESP_LOGCONFIG(TAG, "  Discovery: Manual");
     ESP_LOGCONFIG(TAG, "  Instance IP: %s", this->instance_ip_.c_str());
     ESP_LOGCONFIG(TAG, "  UDP Relay Port: %d", this->udp_relay_port_);
   } else {
-    ESP_LOGCONFIG(TAG, "  Using auto-discovery via mDNS");
+    ESP_LOGCONFIG(TAG, "  Discovery: mDNS");
   }
 }
 
