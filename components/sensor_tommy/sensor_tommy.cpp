@@ -11,7 +11,11 @@ namespace sensor_tommy {
 
 static const char *TAG = "sensor_tommy.component";
 
-void SensorTommy::setup() {}
+void SensorTommy::setup() {
+  if (!this->xiao_esp32c6_antenna_.empty()) {
+    tommy_set_xiao_esp32c6_antenna(this->xiao_esp32c6_antenna_.c_str());
+  }
+}
 
 void SensorTommy::loop() {
   if (network::is_connected()) {

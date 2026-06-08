@@ -14,9 +14,13 @@ SUPPORTED_ESP_IDF_VERSIONS = [
 CONF_DISCOVERY = "discovery"
 CONF_INSTANCE_IP = "instance_ip"
 CONF_UDP_RELAY_PORT = "udp_relay_port"
+CONF_XIAO_ESP32C6_ANTENNA = "xiao_esp32c6_antenna"
 
 DISCOVERY_MDNS = "mdns"
 DISCOVERY_MANUAL = "manual"
+
+XIAO_ANTENNA_INTERNAL = "internal"
+XIAO_ANTENNA_EXTERNAL = "external"
 
 sensor_tommy_ns = cg.esphome_ns.namespace("sensor_tommy")
 SensorTommy = sensor_tommy_ns.class_("SensorTommy", cg.Component)
@@ -41,6 +45,9 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_INSTANCE_IP): cv.string,
             cv.Optional(CONF_UDP_RELAY_PORT): cv.port,
+            cv.Optional(CONF_XIAO_ESP32C6_ANTENNA): cv.one_of(
+                XIAO_ANTENNA_INTERNAL, XIAO_ANTENNA_EXTERNAL, lower=True
+            ),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     _validate_discovery,
@@ -143,6 +150,9 @@ if env.get("PROGNAME") == "firmware":
         cg.add(var.set_instance_ip(config[CONF_INSTANCE_IP]))
         if CONF_UDP_RELAY_PORT in config:
             cg.add(var.set_udp_relay_port(config[CONF_UDP_RELAY_PORT]))
+
+    if CONF_XIAO_ESP32C6_ANTENNA in config:
+        cg.add(var.set_xiao_esp32c6_antenna(config[CONF_XIAO_ESP32C6_ANTENNA]))
 
     await output.register_output(var, config)
     await cg.register_component(var, config)
