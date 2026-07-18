@@ -40,14 +40,10 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(SensorTommy),
-            cv.Optional(CONF_DISCOVERY): cv.one_of(
-                DISCOVERY_MDNS, DISCOVERY_MANUAL, lower=True
-            ),
+            cv.Optional(CONF_DISCOVERY): cv.one_of(DISCOVERY_MDNS, DISCOVERY_MANUAL, lower=True),
             cv.Optional(CONF_INSTANCE_IP): cv.string,
             cv.Optional(CONF_UDP_RELAY_PORT): cv.port,
-            cv.Optional(CONF_XIAO_ESP32C6_ANTENNA): cv.one_of(
-                XIAO_ANTENNA_INTERNAL, XIAO_ANTENNA_EXTERNAL, lower=True
-            ),
+            cv.Optional(CONF_XIAO_ESP32C6_ANTENNA): cv.one_of(XIAO_ANTENNA_INTERNAL, XIAO_ANTENNA_EXTERNAL, lower=True),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     _validate_discovery,
@@ -106,23 +102,8 @@ async def to_code(config):
 
     shutil.copy(lib_source, lib_dest)
 
-    # Add library as extra linking archive - only for main app
-    cg.add_platformio_option("extra_scripts", ["post:add_tommy_lib.py"])
-
-    # Create the extra script
-    script_path = Path(CORE.relative_build_path("add_tommy_lib.py"))
-    script_content = f"""
-Import("env")
-
-# Check if this is the firmware build (not bootloader)
-if env.get("PROGNAME") == "firmware":
-    env.Append(LINKFLAGS=[
-        "-Wl,--whole-archive",
-        "{lib_dest}",
-        "-Wl,--no-whole-archive"
-    ])
-"""
-    script_path.write_text(script_content)
+    # Link the prebuilt archive
+    cg.add_build_flag(f"-Wl,--whole-archive,{lib_dest},--no-whole-archive")
 
     var = cg.new_Pvariable(config[CONF_ID])
 
