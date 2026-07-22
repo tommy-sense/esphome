@@ -1,5 +1,4 @@
 import shutil
-import logging
 import esphome.codegen as cg
 import esphome.config_validation as cv
 import esphome.final_validate as fv
@@ -26,8 +25,8 @@ DOCS_URL = "https://www.tommysense.com/docs/flashing-devices/esphome"
 
 DEPENDENCIES = ["wifi", "esp32"]
 REQUIRED_MIN_VERSION = cv.Version(2026, 7, 0)
-REQUIRED_FRAMEWORK_TYPE = "esp-idf"
 REQUIRED_TOOLCHAIN = "esp-idf"
+REQUIRED_FRAMEWORK_TYPE = "esp-idf"
 REQUIRED_FRAMEWORK_VERSION = "5.5.1"
 REQUIRED_FRAMEWORK_SOURCE = "https://github.com/espressif/esp-idf/releases/download/v5.5.1/esp-idf-v5.5.1.zip"
 REQUIRED_SDKCONFIG_OPTIONS = {
@@ -41,7 +40,6 @@ REQUIRED_SDKCONFIG_OPTIONS = {
     "CONFIG_ESP_TASK_WDT_TIMEOUT_S": "30",
 }
 CONF_SDKCONFIG_OPTIONS = "sdkconfig_options"
-
 CONF_DISCOVERY = "discovery"
 CONF_INSTANCE_IP = "instance_ip"
 CONF_UDP_RELAY_PORT = "udp_relay_port"
@@ -56,18 +54,16 @@ XIAO_ANTENNA_EXTERNAL = "external"
 sensor_tommy_ns = cg.esphome_ns.namespace("sensor_tommy")
 SensorTommy = sensor_tommy_ns.class_("SensorTommy", cg.Component)
 
-_LOGGER = logging.getLogger(__name__)
-
 
 def _invalid(message: str) -> cv.Invalid:
     return cv.Invalid(f"{message} See {DOCS_URL}")
 
 
 def _validate_discovery(config):
-    mode = config.get(CONF_DISCOVERY)
+    mode = config[CONF_DISCOVERY]
     if mode == DISCOVERY_MANUAL:
         if CONF_INSTANCE_IP not in config or not config[CONF_INSTANCE_IP].strip():
-            raise _invalid("instance_ip is required when discovery: manual.")
+            raise _invalid("TOMMY: instance_ip is required when discovery: manual.")
     return config
 
 
@@ -142,7 +138,14 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(SensorTommy),
-            cv.Optional(CONF_DISCOVERY): cv.one_of(DISCOVERY_MDNS, DISCOVERY_MANUAL, lower=True),
+            cv.Required(
+                CONF_DISCOVERY,
+                msg=(
+                    f"TOMMY: '{CONF_DISCOVERY}' is required. "
+                    f"Set '{CONF_DISCOVERY}: {DISCOVERY_MDNS}' or "
+                    f"'{CONF_DISCOVERY}: {DISCOVERY_MANUAL}'. See {DOCS_URL}"
+                ),
+            ): cv.one_of(DISCOVERY_MDNS, DISCOVERY_MANUAL, lower=True),
             cv.Optional(CONF_INSTANCE_IP): cv.string,
             cv.Optional(CONF_UDP_RELAY_PORT): cv.port,
             cv.Optional(CONF_XIAO_ESP32C6_ANTENNA): cv.one_of(XIAO_ANTENNA_INTERNAL, XIAO_ANTENNA_EXTERNAL, lower=True),
@@ -198,26 +201,11 @@ async def to_code(config):
 
     var = cg.new_Pvariable(config[CONF_ID])
 
-    # Get discovery mode and infer if not set explictly
-    mode = config.get(CONF_DISCOVERY)
-    if mode is None:
-        if CONF_INSTANCE_IP in config:
-            mode = DISCOVERY_MANUAL
-            _LOGGER.warning(
-                "TOMMY: 'discovery' is not set. "
-                "Inferred 'manual' because 'instance_ip' is present. "
-                "Set 'discovery: manual' explicitly to suppress this warning."
-            )
-        else:
-            mode = DISCOVERY_MDNS
-            _LOGGER.warning(
-                "TOMMY: 'discovery' is not set. "
-                "Defaulting to 'mdns'. "
-                "Set 'discovery: mdns' explicitly to suppress this warning."
-            )
-
+    # Get discovery mode
+    mode = config[CONF_DISCOVERY]
     cg.add(var.set_discovery_mode(mode))
 
+    # Set instance IP and UDP relay port if discovery mode is manual
     if mode == DISCOVERY_MANUAL:
         cg.add(var.set_instance_ip(config[CONF_INSTANCE_IP]))
         if CONF_UDP_RELAY_PORT in config:
